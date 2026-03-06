@@ -112,7 +112,10 @@ int main()
   // Enviamos un carácter
   while (car != 27)
   {
-
+    car = RecibirCaracter(iface);
+    if(car){
+      printf("Recibido el carácter: %c\n", car);
+    }
     if (kbhit)
     {
       car = getch();
