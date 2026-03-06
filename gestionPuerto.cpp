@@ -13,5 +13,14 @@ unsigned char *type)
     SendFrame(&iface, p, sizeof(payload));
 
     free(payload);
+}
 
+char RecibirCaracter(interface_t iface){
+    apacket_t d = ReceiveFrame(&iface);
+    const unsigned char * p = d.packet;
+    if(p != NULL){
+        const unsigned char * payload = p + 14;
+        return payload[0];
+    }
+    return 0;
 }

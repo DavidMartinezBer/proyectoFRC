@@ -10,4 +10,6 @@ void EnviarCaracter(interface_t iface, char dato,
 unsigned char *mac_sic, unsigned char *mac_dst,
 unsigned char *type);
 
+char RecibirCaracter(interface_t iface);
+
 #endif
