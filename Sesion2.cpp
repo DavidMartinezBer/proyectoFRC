@@ -84,11 +84,11 @@ int main()
   printf("La MAC es: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
   // Se inserta el caracter
-  printf("Pulse los caracteres a enviar:\n");
-  if (kbhit)
-  {
-    car = getch();
-  }
+  //printf("Pulse los caracteres a enviar:\n");
+  //if (kbhit)
+  //{
+    //car = getch();
+  //}
   
 
   // Elegimos el puerto
@@ -116,7 +116,7 @@ int main()
     if(car){
       printf("Recibido el carácter: %c\n", car);
     }
-    if (kbhit)
+    if (kbhit())
     {
       car = getch();
       if (car != 27)
