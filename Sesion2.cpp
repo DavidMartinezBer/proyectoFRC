@@ -84,17 +84,15 @@ int main()
   printf("La MAC es: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
   // Se inserta el caracter
-  //printf("Pulse los caracteres a enviar:\n");
-  //if (kbhit)
+  // printf("Pulse los caracteres a enviar:\n");
+  // if (kbhit)
   //{
-    //car = getch();
+  // car = getch();
   //}
-  
 
   // Elegimos el puerto
   setDeviceName(&iface, "lo");
   GetMACAdapter(&iface);
-  
 
   // Abrimos el puerto
   int Puerto = OpenAdapter(&iface);
@@ -110,28 +108,27 @@ int main()
 
   __fpurge(stdin);
   // Enviamos un carácter
+  int contador = 0;
+
   while (car != 27)
   {
-    car = RecibirCaracter(iface);
-    if(car){
-      printf("Recibido el carácter: %c\n", car);
-    }
+    contador = 0;
     if (kbhit())
     {
       car = getch();
       if (car != 27)
       {
+        contador++;
         EnviarCaracter(iface, car, mac_src, mac_dst, type);
         printf("Enviado el carácter: %c\n", car);
-      } else
-      {
-        printf("\n");
       }
-      
-      
     }
-    
-    
+
+    unsigned char recibido = RecibirCaracter(iface);
+    if (recibido)
+    {
+      printf("Recibido el carácter: %c (%d)\n", recibido, contador);
+    }
   }
 
   // Cerramos el puerto:
