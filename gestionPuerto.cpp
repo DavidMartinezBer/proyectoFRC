@@ -10,7 +10,7 @@ unsigned char *type)
     unsigned char *p;
 
     p = BuildFrame(mac_src, mac_dst, type, payload);
-    SendFrame(&iface, p, sizeof(payload));
+    SendFrame(&iface, p, sizeof(char));
 
     free(payload);
 }
