@@ -12,6 +12,7 @@
 #include <cstring>
 #include "linkLayer.h"
 #include "protocoloDescubrimiento.h"
+#include "protocoloParoEspera.h"
 
 using namespace std;
 
@@ -53,6 +54,8 @@ static void MostrarMenuMaestro()
   printf("\nSeleccione opcion:\n");
   printf("[F1] - Envio de caracteres interactivo\n");
   printf("[F2] - Envio de un fichero\n");
+  printf("[F3] - Protocolo paro y espera - Seleccion\n");   // AÑADIDO
+  printf("[F4] - Introduccion errores durante el protocolo\n"); // AÑADIDO
   printf("[ESC] - Salir\n");
 }
 
@@ -60,6 +63,7 @@ static void MostrarMenuEsclavo()
 {
   printf("\nSeleccione opcion:\n");
   printf("[F1] - Envio de caracteres interactivo\n");
+  printf("[F3] - Protocolo paro y espera - Seleccion\n"); // AÑADIDO
   printf("[ESC] - Salir\n");
 }
 
@@ -373,6 +377,17 @@ int main()
       {
         EnviarFichero(iface, (unsigned char)grupo, mac_remota);
       }
+      else if (tecla == 3) // F3
+      {
+        printf("Protocolo paro y espera.\n");
+        printf("Estas en modo maestro\n");
+
+        enviarArchivo(iface, mac_remota, "EProtoc.txt");
+      }
+      else if (tecla == 4) // F4
+      {
+        pulsarF4();
+      }
     }
   }
   else
@@ -391,6 +406,14 @@ int main()
         else if (tecla == 1)
         {
           EjecutarModoInteractivoEsclavo(iface, (unsigned char)grupo, mac_remota);
+          MostrarMenuEsclavo();
+        }
+        else if (tecla == 3) // F3
+        {
+          printf("Protocolo paro y espera.\n");
+          printf("Estas en modo esclavo\n");
+
+          recibirArchivo(iface, mac_remota, "RProtoc.txt");
           MostrarMenuEsclavo();
         }
       }
