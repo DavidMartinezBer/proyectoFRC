@@ -26,9 +26,9 @@ int recibirTramaDatos(interface_t iface, const unsigned char *mac_origen,
                       
 int esperarACK(interface_t iface, const unsigned char *mac_origen, char num_trama);
 
-int enviarArchivo(interface_t iface, const unsigned char *mac_dst, const char *nombre_archivo);
+int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char grupo, const char *nombre_archivo);
 
-int recibirArchivo(interface_t iface, const unsigned char *mac_origen, const char *nombre_destino);
+int recibirArchivo(interface_t iface, const unsigned char *mac_origen, unsigned char grupo, const char *nombre_destino);
 
 void pulsarF4();
 

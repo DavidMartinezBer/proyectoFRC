@@ -382,7 +382,7 @@ int main()
         printf("Protocolo paro y espera.\n");
         printf("Estas en modo maestro\n");
 
-        enviarArchivo(iface, mac_remota, "EProtoc.txt");
+  enviarArchivo(iface, mac_remota, (unsigned char)grupo, "EProtoc.txt");
       }
       else if (tecla == 4) // F4
       {
@@ -413,7 +413,7 @@ int main()
           printf("Protocolo paro y espera.\n");
           printf("Estas en modo esclavo\n");
 
-          recibirArchivo(iface, mac_remota, "RProtoc.txt");
+          recibirArchivo(iface, mac_remota, (unsigned char)grupo, "RProtoc.txt");
           MostrarMenuEsclavo();
         }
       }
