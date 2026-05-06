@@ -4,6 +4,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#define CTRL_ENQ 0x05
+#define CTRL_EOT 0x04
+#define CTRL_ACK 0x06
+#define CTRL_NACK 0x21
+#define CTRL_STX 0x02
+
 // ==========================
 // Variables globales para errores manuales
 // ==========================
@@ -145,12 +151,40 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, const char *n
     unsigned char buffer[254];
     int leidos;
 
-    // Leer y enviar tramas de 254 bytes máximo
+    printf("PROTOCOLO PARO Y ESPERA (MAESTRO)\n");
+
+    // ==========================
+    // 1. ENQ
+    // ==========================
+    printf("E   E   ENQ   %c\n", num_trama);
+    enviarTramaControl(iface, mac_dst, CTRL_ENQ, num_trama);
+
+    // Esperar ACK
+    esperarACK(iface, mac_dst, num_trama);
+    printf("R   R   ACK   %c\n", num_trama);
+
+    // ==========================
+    // 2. DATOS
+    // ==========================
     while ((leidos = fread(buffer, 1, 254, f)) > 0) {
+        printf("E   E   STX   %c   %d\n", num_trama, leidos);
+
         enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+
+        printf("R   R   ACK   %c\n", (num_trama == '0') ? '1' : '0');
     }
 
+    // ==========================
+    // 3. EOT
+    // ==========================
+    printf("E   E   EOT   %c\n", num_trama);
+    enviarTramaControl(iface, mac_dst, CTRL_EOT, num_trama);
+
+    esperarACK(iface, mac_dst, num_trama);
+    printf("R   R   ACK   %c\n", num_trama);
+
     fclose(f);
+    printf("Fin de Seleccion por parte del Maestro\n");
     return 0;
 }
 
@@ -165,13 +199,59 @@ int recibirArchivo(interface_t iface, const unsigned char *mac_origen, const cha
     unsigned char buffer[254];
     int longitud;
 
+    printf("PROTOCOLO PARO Y ESPERA (ESCLAVO)\n");
+
     while (1) {
-        int res = recibirTramaDatos(iface, mac_origen, &num_trama, buffer, &longitud);
-        if (res != 0) break; // Por simplicidad, aquí se detiene cuando no hay más tramas
-        fwrite(buffer, 1, longitud, f);
+        apacket_t trama = ReceiveFrame(&iface);
+        if (trama.packet == NULL) continue;
+
+        // ==========================
+        // ENQ
+        // ==========================
+        if (trama.packet[0] == 'R' && trama.packet[1] == CTRL_ENQ) {
+            printf("R   R   ENQ   %c\n", trama.packet[2]);
+
+            unsigned char *ack = construirTramaControl(iface.MACaddr, (unsigned char *)mac_origen, CTRL_ACK, trama.packet[2]);
+            SendFrame(&iface, ack, 3);
+            free(ack);
+
+            printf("E   E   ACK   %c\n", trama.packet[2]);
+            continue;
+        }
+
+        // ==========================
+        // EOT
+        // ==========================
+        if (trama.packet[0] == 'R' && trama.packet[1] == CTRL_EOT) {
+            printf("R   R   EOT   %c\n", trama.packet[2]);
+
+            unsigned char *ack = construirTramaControl(iface.MACaddr, (unsigned char *)mac_origen, CTRL_ACK, trama.packet[2]);
+            SendFrame(&iface, ack, 3);
+            free(ack);
+
+            printf("E   E   ACK   %c\n", trama.packet[2]);
+            break;
+        }
+
+        // ==========================
+        // DATOS (STX)
+        // ==========================
+        if (trama.packet[0] == 'R' && trama.packet[1] == CTRL_STX) {
+            printf("R   R   STX   %c   %d\n", trama.packet[2], trama.packet[3]);
+
+            int res = procesarTramaDatos(&trama, iface, mac_origen, &num_trama, buffer, &longitud);
+
+            if (res == 0) {
+                fwrite(buffer, 1, longitud, f);
+                printf("E   E   ACK   %c\n", (num_trama == '0') ? '1' : '0');
+            } else if (res == 4) {
+                printf("E   E   NACK  %c\n", num_trama);
+            }
+        }
     }
 
     fclose(f);
+    printf("Fin de Seleccion por parte del Esclavo\n");
     return 0;
 }
 
@@ -180,4 +260,63 @@ int recibirArchivo(interface_t iface, const unsigned char *mac_origen, const cha
 // ==========================
 void pulsarF4() {
     errores_manual++;
+}
+
+int esperarACK(interface_t iface, const unsigned char *mac_origen, char num_trama) {
+    while (1) {
+        apacket_t resp = ReceiveFrame(&iface);
+        if (resp.packet == NULL) continue;
+
+        if (resp.packet[0] == 'R' &&
+            resp.packet[1] == CTRL_ACK &&
+            resp.packet[2] == num_trama) {
+            return 0;
+        }
+    }
+}
+
+int procesarTramaDatos(apacket_t *trama,
+                       interface_t iface,
+                       const unsigned char *mac_origen,
+                       char *num_trama,
+                       unsigned char *buffer_datos,
+                       int *longitud)
+{
+    if (trama->packet == NULL || trama->header.caplen < 14)
+        return 1;
+
+    if (trama->packet[0] != 'R' || trama->packet[1] != 0x02)
+        return 2;
+
+    if (trama->packet[2] != *num_trama)
+        return 3;
+
+    int len = trama->packet[3];
+
+    if (len <= 0 || len > 254)
+        return 5;
+
+    unsigned char bce_calculado = calcularBCE(trama->packet + 4, len);
+    unsigned char bce_recibido = trama->packet[4 + len];
+
+    if (bce_calculado != bce_recibido) {
+        unsigned char *nack = construirTramaControl(iface.MACaddr, (unsigned char *)mac_origen, 0x21, *num_trama);
+        SendFrame(&iface, nack, 3);
+        free(nack);
+        return 4;
+    }
+
+    if (buffer_datos != NULL)
+        memcpy(buffer_datos, trama->packet + 4, len);
+
+    if (longitud != NULL)
+        *longitud = len;
+
+    unsigned char *ack = construirTramaControl(iface.MACaddr, (unsigned char *)mac_origen, 0x06, *num_trama);
+    SendFrame(&iface, ack, 3);
+    free(ack);
+
+    *num_trama = (*num_trama == '0') ? '1' : '0';
+
+    return 0;
 }

@@ -21,4 +21,6 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, const char *n
 int recibirArchivo(interface_t iface, const unsigned char *mac_origen, const char *nombre_destino);
 
 void pulsarF4();
+
+int esperarACK(interface_t iface, const unsigned char *mac_origen, char num_trama);
 #endif // PROTOCOLO_PARO_ESPERA_H
