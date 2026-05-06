@@ -1,3 +1,10 @@
+#/*******************************************************************************
+# Integrantes:
+# - Sebastián Caicedo Sánchez
+# - David Martínez Bergantiño
+# Grupo: 9
+#*******************************************************************************/
+
 #include "protocoloParoEspera.h"
 #include "protocoloDescubrimiento.h"
 #include <stdlib.h>

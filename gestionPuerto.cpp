@@ -1,3 +1,10 @@
+#/*******************************************************************************
+# Integrantes:
+# - Sebastián Caicedo Sánchez
+# - David Martínez Bergantiño
+# Grupo: 9
+#*******************************************************************************/
+
 #include "gestionPuerto.h"
 
 void EnviarCaracter(interface_t iface, char dato,
