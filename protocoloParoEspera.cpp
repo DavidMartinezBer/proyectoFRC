@@ -325,6 +325,7 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
     printf("\n");
 
     // EOT
+    num_trama = '0';
     printf("E   R   EOT   %c\n", num_trama);
     enviarTramaControl(iface, mac_dst, CTRL_EOT, num_trama);
 

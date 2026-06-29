@@ -13,7 +13,8 @@ unsigned char* construirTramaDatos(const unsigned char *mac_origen,
                                    const unsigned char *mac_destino,
                                    char num_trama,
                                    const unsigned char *datos,
-                                   int longitud);
+                                   int longitud,
+                                   int introducir_error);
 
 int enviarTramaControl(interface_t iface, const unsigned char *mac_dst,
                        unsigned char control, char num_trama);                                   
