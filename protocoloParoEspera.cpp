@@ -16,6 +16,7 @@
 #define CTRL_ACK 0x06
 #define CTRL_NACK 0x21
 #define CTRL_STX 0x02
+#define CTRL_CAN 0x18
 
 // ==========================
 // Variables globales
@@ -198,6 +199,12 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
             SendFrame(&iface, frame, longitud + 5);
             free(frame);
         }
+
+        if (payload[1] == CTRL_CAN)
+        {
+            printf("R   R   CAN   %c\n", payload[2]);
+            return 2;
+        }
     }
 }
 
@@ -314,13 +321,20 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
             pulsarF4();
         }
 
-        if (errores_manual > 0) {
+        if (errores_manual > 0)
+        {
             printf("INTRODUCIENDO ERROR\n");
         }
         unsigned char bce = calcularBCE(buffer, leidos);
         printf("E   R   STX   %c   %d\n", num_trama, (int)bce);
-        enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
 
+        int estado = enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+
+        if (estado == 2)
+        {
+            printf("El esclavo ha solicitado finalizar la transmision.\n");
+            break;
+        }
     }
     printf("\n");
 
@@ -356,6 +370,10 @@ int recibirArchivo(interface_t iface, const unsigned char *mac_origen, unsigned 
     int longitud;
 
     printf("PROTOCOLO PARO Y ESPERA (ESCLAVO)\n");
+
+    // Pongo tramas validas para que cuando llegue a 4 se detenga la ejecucción del programa
+    int tramas_validas = 0;
+    int solicitar_fin = 0;
 
     while (1)
     {
@@ -399,6 +417,22 @@ int recibirArchivo(interface_t iface, const unsigned char *mac_origen, unsigned 
         // DATOS
         if (payload[0] == 'R' && payload[1] == CTRL_STX)
         {
+
+            if (solicitar_fin)
+            {
+                unsigned char *can = construirTramaControl(
+                    iface.MACaddr,
+                    (unsigned char *)mac_origen,
+                    CTRL_CAN,
+                    payload[2]);
+
+                SendFrame(&iface, can, 3);
+                free(can);
+
+                printf("E   R   CAN   %c\n", payload[2]);
+                continue;
+            }
+
             int len = payload[3];
             unsigned char bce_recibido = 0;
             unsigned char bce_calculado = 0;
@@ -421,8 +455,27 @@ int recibirArchivo(interface_t iface, const unsigned char *mac_origen, unsigned 
 
             if (res == 0)
             {
+
                 fwrite(buffer, 1, longitud, f);
                 printf("E   R   ACK   %c\n", (num_trama == '0') ? '1' : '0');
+
+                // Modificacion tramas valiodas
+                tramas_validas++;
+
+                if (tramas_validas == 4)
+                {
+                    solicitar_fin = 1;
+
+                    unsigned char *can = construirTramaControl(iface.MACaddr,
+                                                               (unsigned char *)mac_origen,
+                                                               CTRL_CAN,
+                                                               (num_trama == '0') ? '1' : '0');
+
+                    SendFrame(&iface, can, 3);
+                    free(can);
+
+                    printf("E   R   CAN   %c\n", (num_trama == '0') ? '1' : '0');
+                }
             }
             else if (res == 4)
             {
