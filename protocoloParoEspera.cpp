@@ -17,7 +17,6 @@
 #define CTRL_NACK 0x21
 #define CTRL_STX 0x02
 
-
 // ==========================
 // Variables globales
 // ==========================
@@ -146,6 +145,7 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
                      char *num_trama, const unsigned char *datos, int longitud)
 {
     int introducir_error = 0;
+    int nack = 0;
 
     if (errores_manual > 0)
     {
@@ -180,11 +180,18 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
         {
             printf("R   R   ACK   %c\n", *num_trama);
             *num_trama = (*num_trama == '0') ? '1' : '0';
+
+            if (nack)
+            {
+                return 2;
+            }
+
             return 0;
         }
 
         if (payload[1] == CTRL_NACK && payload[2] == *num_trama)
         {
+            nack = 1;
             printf("R   R   NACK  %c\n", *num_trama);
 
             frame = construirTramaDatos(iface.MACaddr, mac_dst,
@@ -199,7 +206,6 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
             SendFrame(&iface, frame, longitud + 5);
             free(frame);
         }
-
     }
 }
 
@@ -308,6 +314,9 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
     printf("\n");
 
     // DATOS
+
+    int tramas_correctas = 0;
+
     while ((leidos = fread(buffer, 1, 254, f)) > 0)
     {
 
@@ -323,9 +332,27 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
         unsigned char bce = calcularBCE(buffer, leidos);
         printf("E   R   STX   %c   %d\n", num_trama, (int)bce);
 
-        enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+        int resultado = enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
 
+        if (resultado == 0)
+        {
+            tramas_correctas++;
+        }
+        else if (resultado == 2)
+        {
+            tramas_correctas = 0;
+        }
+        else
+        {
+            printf("Error enviando trama.\n");
+            break;
+        }
 
+        if (tramas_correctas >= 4)
+        {
+            printf("Se han enviado 4 tramas validas seguidas. Finalizando transmision.\n");
+            break;
+        }
     }
     printf("\n");
 
