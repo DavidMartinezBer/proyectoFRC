@@ -21,6 +21,7 @@
 // Variables globales
 // ==========================
 int errores_manual = 0;
+int nack_detectados = 0;
 // group used to build the 2-byte protocol/type field for ethernet
 static unsigned char module_group = 1;
 
