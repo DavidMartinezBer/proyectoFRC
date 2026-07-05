@@ -21,6 +21,7 @@
 // Variables globales
 // ==========================
 int errores_manual = 0;
+int errores_manuales_totales = 0;
 // group used to build the 2-byte protocol/type field for ethernet
 static unsigned char module_group = 1;
 
@@ -308,6 +309,12 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
     // DATOS
     while ((leidos = fread(buffer, 1, 254, f)) > 0)
     {
+        if (errores_manuales_totales > 3)
+        {
+            printf("LIMITE DE ERRORES ALCANZADOS\n");
+            break;
+        }
+        
 
         if (leerF4DuranteProtocolo())
         {
@@ -440,6 +447,7 @@ int recibirArchivo(interface_t iface, const unsigned char *mac_origen, unsigned 
 void pulsarF4()
 {
     errores_manual++;
+    errores_manuales_totales++;
 }
 
 // ==========================
