@@ -60,7 +60,7 @@ static void MostrarMenuMaestro()
   printf("\nSeleccione opcion:\n");
   printf("[F1] - Envio de caracteres interactivo\n");
   printf("[F2] - Envio de un fichero\n");
-  printf("[F3] - Protocolo paro y espera - Seleccion\n");   // AÑADIDO
+  printf("[F3] - Protocolo paro y espera - Seleccion\n");       // AÑADIDO
   printf("[F4] - Introduccion errores durante el protocolo\n"); // AÑADIDO
   printf("[ESC] - Salir\n");
 }
@@ -94,7 +94,6 @@ static void ProcesarRecepcionEsclavo(interface_t iface, unsigned char grupo, con
   {
     return;
   }
-  
 
   /* comportamiento original por subtipo */
   if (subtipo == FRC_DATA_INTERACTIVE)
@@ -388,7 +387,7 @@ int main()
         printf("Protocolo paro y espera.\n");
         printf("Estas en modo maestro\n");
 
-  enviarArchivo(iface, mac_remota, (unsigned char)grupo, "EProtoc.txt");
+        enviarArchivo(iface, mac_remota, (unsigned char)grupo, "EProtoc.txt");
       }
       else if (tecla == 4) // F4
       {
