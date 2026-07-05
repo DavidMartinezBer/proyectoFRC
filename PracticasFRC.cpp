@@ -60,7 +60,7 @@ static void MostrarMenuMaestro()
   printf("\nSeleccione opcion:\n");
   printf("[F1] - Envio de caracteres interactivo\n");
   printf("[F2] - Envio de un fichero\n");
-  printf("[F3] - Protocolo paro y espera - Seleccion\n");   // AÑADIDO
+  printf("[F3] - Protocolo paro y espera - Seleccion\n");       // AÑADIDO
   printf("[F4] - Introduccion errores durante el protocolo\n"); // AÑADIDO
   printf("[ESC] - Salir\n");
 }
@@ -94,7 +94,6 @@ static void ProcesarRecepcionEsclavo(interface_t iface, unsigned char grupo, con
   {
     return;
   }
-  
 
   /* comportamiento original por subtipo */
   if (subtipo == FRC_DATA_INTERACTIVE)
@@ -136,6 +135,7 @@ static void EjecutarModoInteractivoMaestro(interface_t iface, unsigned char grup
   printf("\nModo interactivo maestro activo. ESC para volver al menu.\n");
 
   int salir = 0;
+  int caracteres_enviados = 0;
   while (!salir)
   {
     if (kbhit())
@@ -151,6 +151,11 @@ static void EjecutarModoInteractivoMaestro(interface_t iface, unsigned char grup
         if (FRCEnviarTramaDatos(iface, mac_esclavo, grupo, FRC_DATA_INTERACTIVE, &c, 1) == 0)
         {
           printf("Enviado el caracter: %c\n", c);
+          caracteres_enviados++;
+          if (caracteres_enviados > 9)
+          {
+            salir = 1;
+          }
         }
       }
       else if (tecla == '\n' || tecla == '\r' || tecla == '\t')
@@ -159,6 +164,11 @@ static void EjecutarModoInteractivoMaestro(interface_t iface, unsigned char grup
         if (FRCEnviarTramaDatos(iface, mac_esclavo, grupo, FRC_DATA_INTERACTIVE, &c, 1) == 0)
         {
           printf("Enviado caracter especial de control.\n");
+          caracteres_enviados++;
+          if (caracteres_enviados > 9)
+          {
+            salir = 1;
+          }
         }
       }
     }
@@ -180,6 +190,7 @@ static void EjecutarModoInteractivoEsclavo(interface_t iface, unsigned char grup
   printf("\nModo interactivo esclavo activo. ESC para volver al menu.\n");
 
   int salir = 0;
+  int caracteres_enviados = 0;
   while (!salir)
   {
     if (kbhit())
@@ -195,6 +206,11 @@ static void EjecutarModoInteractivoEsclavo(interface_t iface, unsigned char grup
         if (FRCEnviarTramaDatos(iface, mac_maestro, grupo, FRC_DATA_INTERACTIVE, &c, 1) == 0)
         {
           printf("Enviado el caracter: %c\n", c);
+          caracteres_enviados++;
+          if (caracteres_enviados > 9)
+          {
+            salir = 1;
+          }
         }
       }
       else if (tecla == '\n' || tecla == '\r' || tecla == '\t')
@@ -202,7 +218,12 @@ static void EjecutarModoInteractivoEsclavo(interface_t iface, unsigned char grup
         unsigned char c = (unsigned char)tecla;
         if (FRCEnviarTramaDatos(iface, mac_maestro, grupo, FRC_DATA_INTERACTIVE, &c, 1) == 0)
         {
+          caracteres_enviados++;
           printf("Enviado caracter especial de control.\n");
+          if (caracteres_enviados > 9)
+          {
+            salir = 1;
+          }
         }
       }
     }
@@ -388,7 +409,7 @@ int main()
         printf("Protocolo paro y espera.\n");
         printf("Estas en modo maestro\n");
 
-  enviarArchivo(iface, mac_remota, (unsigned char)grupo, "EProtoc.txt");
+        enviarArchivo(iface, mac_remota, (unsigned char)grupo, "EProtoc.txt");
       }
       else if (tecla == 4) // F4
       {
