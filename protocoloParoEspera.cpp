@@ -21,7 +21,6 @@
 // Variables globales
 // ==========================
 int errores_manual = 0;
-int nack_detectados = 0;
 // group used to build the 2-byte protocol/type field for ethernet
 static unsigned char module_group = 1;
 
@@ -146,6 +145,7 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
                      char *num_trama, const unsigned char *datos, int longitud)
 {
     int introducir_error = 0;
+    int nacks = 0;
 
     if (errores_manual > 0)
     {
@@ -157,7 +157,7 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
                                                *num_trama, datos, longitud,
                                                introducir_error);
     if (!frame)
-        return 1;
+        return -1;
 
     SendFrame(&iface, frame, longitud + 5);
     free(frame);
@@ -180,11 +180,19 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
         {
             printf("R   R   ACK   %c\n", *num_trama);
             *num_trama = (*num_trama == '0') ? '1' : '0';
+
+            if (nacks > 0)
+            {
+                return nacks;
+            }
+            
+
             return 0;
         }
 
         if (payload[1] == CTRL_NACK && payload[2] == *num_trama)
         {
+            nacks++;
             printf("R   R   NACK  %c\n", *num_trama);
 
             frame = construirTramaDatos(iface.MACaddr, mac_dst,
@@ -192,7 +200,7 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
                                         0); // retransmisión SIN error
 
             if (!frame)
-                return 1;
+                return -1;
 
             printf("E   R   STX   %c   %d\n", *num_trama, (int)calcularBCE(datos, longitud));
 
@@ -283,6 +291,8 @@ int esperarACK(interface_t iface, const unsigned char *mac_origen, char num_tram
 // ==========================
 int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char grupo, const char *nombre_archivo)
 {
+    int nacks_recibidos = 0;
+    
     module_group = grupo;
     FILE *f = fopen(nombre_archivo, "rb");
     if (!f)
@@ -320,7 +330,20 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
         }
         unsigned char bce = calcularBCE(buffer, leidos);
         printf("E   R   STX   %c   %d\n", num_trama, (int)bce);
-        enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+
+        int recibido = enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+
+        if (recibido != 0 && recibido != -1)
+        {
+            nacks_recibidos += recibido;
+        }
+
+        if (nacks_recibidos > 3)
+        {
+            break;
+        }
+        
+        
 
     }
     printf("\n");
