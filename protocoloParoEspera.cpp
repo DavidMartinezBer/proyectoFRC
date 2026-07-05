@@ -146,6 +146,8 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
 {
     int introducir_error = 0;
 
+    int nacks = 0;
+
     if (errores_manual > 0)
     {
         introducir_error = 1;
@@ -156,7 +158,7 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
                                                *num_trama, datos, longitud,
                                                introducir_error);
     if (!frame)
-        return 1;
+        return -1;
 
     SendFrame(&iface, frame, longitud + 5);
     free(frame);
@@ -184,14 +186,20 @@ int enviarTramaDatos(interface_t iface, const unsigned char *mac_dst,
 
         if (payload[1] == CTRL_NACK && payload[2] == *num_trama)
         {
+            nacks++;
             printf("R   R   NACK  %c\n", *num_trama);
+
+            if(nacks > 2)
+            {
+                return 1;
+            }
 
             frame = construirTramaDatos(iface.MACaddr, mac_dst,
                                         *num_trama, datos, longitud,
                                         0); // retransmisión SIN error
 
             if (!frame)
-                return 1;
+                return -1;
 
             printf("E   R   STX   %c   %d\n", *num_trama, (int)calcularBCE(datos, longitud));
 
@@ -319,7 +327,12 @@ int enviarArchivo(interface_t iface, const unsigned char *mac_dst, unsigned char
         }
         unsigned char bce = calcularBCE(buffer, leidos);
         printf("E   R   STX   %c   %d\n", num_trama, (int)bce);
-        enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+        int recibido = enviarTramaDatos(iface, mac_dst, &num_trama, buffer, leidos);
+
+        if(recibido != 0)
+        {
+            break;
+        }
 
     }
     printf("\n");
